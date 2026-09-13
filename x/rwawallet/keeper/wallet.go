@@ -154,6 +154,13 @@ func (k Keeper) Transfer(ctx context.Context, msg types.MsgTransfer) (types.Tran
 	if !found || !approval.Approved {
 		return types.TransactionRecord{}, types.ErrApprovalRequired.Wrap(msg.FromAddress)
 	}
+	recipientApproval, found, err := k.GetApproval(ctx, msg.ToAddress)
+	if err != nil {
+		return types.TransactionRecord{}, err
+	}
+	if !found || !recipientApproval.Approved {
+		return types.TransactionRecord{}, types.ErrApprovalRequired.Wrap(msg.ToAddress)
+	}
 	currency, found, err := k.getCurrency(ctx, msg.Amount.Denom)
 	if err != nil {
 		return types.TransactionRecord{}, err

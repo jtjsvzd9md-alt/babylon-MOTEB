@@ -62,12 +62,24 @@ func TestWalletApprovalAndTransferLifecycle(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, approval.Approved)
 
-	txRecord, err := k.Transfer(ctx, types.MsgTransfer{
+	_, err = k.Transfer(ctx, types.MsgTransfer{
 		FromAddress: "wallet-user-a",
 		ToAddress:   "wallet-user-b",
 		Amount:      sdk.NewInt64Coin("urwa", 5),
 		Executor:    "owner-a",
 		ExecutedAt:  now.Add(time.Minute),
+	})
+	require.ErrorIs(t, err, types.ErrApprovalRequired)
+
+	_, err = k.ApproveWallet(ctx, authority, "wallet-user-b", now)
+	require.NoError(t, err)
+
+	txRecord, err := k.Transfer(ctx, types.MsgTransfer{
+		FromAddress: "wallet-user-a",
+		ToAddress:   "wallet-user-b",
+		Amount:      sdk.NewInt64Coin("urwa", 5),
+		Executor:    "owner-a",
+		ExecutedAt:  now.Add(2 * time.Minute),
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), txRecord.Cycle)
@@ -97,6 +109,11 @@ func TestCurrencyRotationAndGenesisExport(t *testing.T) {
 
 	err := k.InitGenesis(ctx, types.GenesisState{
 		Authority: authority,
+		Wallets: []types.Wallet{{
+			Address:   "warehouse-wallet-a",
+			Owner:     "owner-a",
+			Warehouse: "warehouse-a",
+		}},
 		Currencies: []types.Currency{{
 			Denom:               "urwa",
 			State:               types.CurrencyStateActive,
@@ -104,6 +121,11 @@ func TestCurrencyRotationAndGenesisExport(t *testing.T) {
 			CycleDuration:       time.Hour,
 			LastRotatedAt:       now.Add(-2 * time.Hour),
 			SupportedWarehouses: []string{"warehouse-a"},
+		}},
+		Warehouses: []types.Warehouse{{
+			Name:            "warehouse-a",
+			WalletAddress:   "warehouse-wallet-a",
+			SupportedDenoms: []string{"urwa"},
 		}},
 	})
 	require.NoError(t, err)
@@ -141,5 +163,31 @@ func TestWarehouseCompatibilityBlocksUnsupportedTransfers(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = k.Transfer(ctx, types.MsgTransfer{FromAddress: "user-a", ToAddress: "user-b", Amount: sdk.NewInt64Coin("urwa", 1), Executor: "owner-a", ExecutedAt: now})
+	require.ErrorIs(t, err, types.ErrApprovalRequired)
+
+	_, err = k.ApproveWallet(ctx, authority, "user-b", now)
+	require.NoError(t, err)
+
+	_, err = k.Transfer(ctx, types.MsgTransfer{FromAddress: "user-a", ToAddress: "user-b", Amount: sdk.NewInt64Coin("urwa", 1), Executor: "owner-a", ExecutedAt: now})
 	require.ErrorIs(t, err, types.ErrCurrencyIncompatible)
+}
+
+func TestInitGenesisRejectsBrokenReferences(t *testing.T) {
+	const authority = "babylon1authority"
+	k, ctx := keepertest.RwaWalletKeeper(t, authority)
+
+	err := k.InitGenesis(ctx, types.GenesisState{
+		Authority: authority,
+		Wallets: []types.Wallet{{
+			Address:   "wallet-user-a",
+			Owner:     "owner-a",
+			Warehouse: "warehouse-a",
+		}},
+		Approvals: []types.Approval{{
+			WalletAddress: "missing-wallet",
+			RequestedBy:   "owner-a",
+		}},
+	})
+	require.Error(t, err)
+	require.ErrorContains(t, err, "wallet")
 }

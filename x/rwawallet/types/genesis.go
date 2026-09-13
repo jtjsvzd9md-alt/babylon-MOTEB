@@ -83,6 +83,7 @@ func DefaultGenesis(authority string) *GenesisState {
 
 func (gs GenesisState) Validate() error {
 	seenWallets := map[string]struct{}{}
+	walletWarehouses := map[string]string{}
 	for _, wallet := range gs.Wallets {
 		if err := wallet.Validate(); err != nil {
 			return err
@@ -91,6 +92,7 @@ func (gs GenesisState) Validate() error {
 			return ErrDuplicateGenesisEntry.Wrapf("wallet %s", wallet.Address)
 		}
 		seenWallets[wallet.Address] = struct{}{}
+		walletWarehouses[wallet.Address] = wallet.Warehouse
 	}
 
 	seenApprovals := map[string]struct{}{}
@@ -100,6 +102,9 @@ func (gs GenesisState) Validate() error {
 		}
 		if _, ok := seenApprovals[approval.WalletAddress]; ok {
 			return ErrDuplicateGenesisEntry.Wrapf("approval %s", approval.WalletAddress)
+		}
+		if _, ok := seenWallets[approval.WalletAddress]; !ok {
+			return ErrWalletNotFound.Wrapf("approval wallet %s", approval.WalletAddress)
 		}
 		seenApprovals[approval.WalletAddress] = struct{}{}
 	}
@@ -123,7 +128,27 @@ func (gs GenesisState) Validate() error {
 		if _, ok := seenWarehouses[warehouse.Name]; ok {
 			return ErrDuplicateGenesisEntry.Wrapf("warehouse %s", warehouse.Name)
 		}
+		if _, ok := seenWallets[warehouse.WalletAddress]; !ok {
+			return ErrWalletNotFound.Wrapf("warehouse wallet %s", warehouse.WalletAddress)
+		}
 		seenWarehouses[warehouse.Name] = struct{}{}
+	}
+
+	for walletAddress, warehouseName := range walletWarehouses {
+		if warehouseName == "" {
+			continue
+		}
+		if _, ok := seenWarehouses[warehouseName]; !ok {
+			return ErrWarehouseNotFound.Wrapf("wallet %s warehouse %s", walletAddress, warehouseName)
+		}
+	}
+
+	for _, currency := range gs.Currencies {
+		for _, warehouseName := range currency.SupportedWarehouses {
+			if _, ok := seenWarehouses[warehouseName]; !ok {
+				return ErrWarehouseNotFound.Wrapf("currency %s warehouse %s", currency.Denom, warehouseName)
+			}
+		}
 	}
 
 	return nil
