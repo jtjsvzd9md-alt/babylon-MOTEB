@@ -123,6 +123,8 @@ import (
 	minttypes "github.com/babylonlabs-io/babylon/v4/x/mint/types"
 	"github.com/babylonlabs-io/babylon/v4/x/monitor"
 	monitortypes "github.com/babylonlabs-io/babylon/v4/x/monitor/types"
+	"github.com/babylonlabs-io/babylon/v4/x/rwawallet"
+	rwawallettypes "github.com/babylonlabs-io/babylon/v4/x/rwawallet/types"
 	"github.com/strangelove-ventures/tokenfactory/x/tokenfactory"
 	tokenfactorytypes "github.com/strangelove-ventures/tokenfactory/x/tokenfactory/types"
 )
@@ -325,6 +327,7 @@ func NewBabylonApp(
 		btccheckpoint.NewAppModule(appCodec, app.BtcCheckpointKeeper),
 		checkpointing.NewAppModule(appCodec, app.CheckpointingKeeper),
 		monitor.NewAppModule(appCodec, app.MonitorKeeper),
+		rwawallet.NewAppModule(appCodec, app.RwaWalletKeeper),
 		// Babylon modules - btc staking
 		btcstaking.NewAppModule(appCodec, app.BTCStakingKeeper),
 		finality.NewAppModule(appCodec, app.FinalityKeeper),
@@ -383,6 +386,7 @@ func NewBabylonApp(
 		btccheckpointtypes.ModuleName,
 		checkpointingtypes.ModuleName,
 		monitortypes.ModuleName,
+		rwawallettypes.ModuleName,
 		// IBC-related modules
 		ibcexported.ModuleName,
 		ibcwasmtypes.ModuleName,
@@ -413,6 +417,7 @@ func NewBabylonApp(
 		btccheckpointtypes.ModuleName,
 		checkpointingtypes.ModuleName,
 		monitortypes.ModuleName,
+		rwawallettypes.ModuleName,
 		// IBC-related modules
 		ibcexported.ModuleName,
 		ibcwasmtypes.ModuleName,
@@ -457,6 +462,7 @@ func NewBabylonApp(
 		btccheckpointtypes.ModuleName,
 		checkpointingtypes.ModuleName,
 		monitortypes.ModuleName,
+		rwawallettypes.ModuleName,
 		// IBC-related modules
 		ibcexported.ModuleName,
 		ibcwasmtypes.ModuleName,

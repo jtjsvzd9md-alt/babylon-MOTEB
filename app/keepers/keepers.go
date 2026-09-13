@@ -66,6 +66,8 @@ import (
 	minttypes "github.com/babylonlabs-io/babylon/v4/x/mint/types"
 	monitorkeeper "github.com/babylonlabs-io/babylon/v4/x/monitor/keeper"
 	monitortypes "github.com/babylonlabs-io/babylon/v4/x/monitor/types"
+	rwawalletkeeper "github.com/babylonlabs-io/babylon/v4/x/rwawallet/keeper"
+	rwawallettypes "github.com/babylonlabs-io/babylon/v4/x/rwawallet/types"
 
 	ibcwasmkeeper "github.com/cosmos/ibc-go/modules/light-clients/08-wasm/v10/keeper"
 	ibcwasmtypes "github.com/cosmos/ibc-go/modules/light-clients/08-wasm/v10/types"
@@ -153,6 +155,7 @@ type AppKeepers struct {
 	CheckpointingKeeper  checkpointingkeeper.Keeper
 	MonitorKeeper        monitorkeeper.Keeper
 	CostakingKeeper      costakingkeeper.Keeper
+	RwaWalletKeeper      rwawalletkeeper.Keeper
 
 	// IBC-related modules
 	IBCKeeper           *ibckeeper.Keeper           // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
@@ -217,6 +220,7 @@ func (ak *AppKeepers) InitKeepers(
 		btccheckpointtypes.StoreKey,
 		checkpointingtypes.StoreKey,
 		monitortypes.StoreKey,
+		rwawallettypes.StoreKey,
 		// IBC-related modules
 		ibcexported.StoreKey,
 		ibctransfertypes.StoreKey,
@@ -540,6 +544,11 @@ func (ak *AppKeepers) InitKeepers(
 		appCodec,
 		runtime.NewKVStoreService(keys[monitortypes.StoreKey]),
 		&btclightclientKeeper,
+	)
+
+	ak.RwaWalletKeeper = rwawalletkeeper.NewKeeper(
+		runtime.NewKVStoreService(keys[rwawallettypes.StoreKey]),
+		appparams.AccGov.String(),
 	)
 
 	// make ZoneConcierge and Monitor to subscribe to the epoching's hooks
